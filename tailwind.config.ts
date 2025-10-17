@@ -81,6 +81,14 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        // Crypto-specific colors
+        crypto: {
+          bullish: "hsl(142 76% 36% / <alpha-value>)",
+          bearish: "hsl(0 84% 60% / <alpha-value>)",
+          warning: "hsl(38 92% 50% / <alpha-value>)",
+          critical: "hsl(0 100% 50% / <alpha-value>)",
+          neutral: "hsl(220 13% 35% / <alpha-value>)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
