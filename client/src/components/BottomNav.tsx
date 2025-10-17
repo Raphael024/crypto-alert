@@ -21,7 +21,7 @@ export function BottomNav() {
           
           return (
             <Link key={item.path} href={item.path}>
-              <a
+              <button
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[64px]",
                   isActive
@@ -32,7 +32,7 @@ export function BottomNav() {
               >
                 <Icon className={cn("h-5 w-5", isActive && "scale-110")} />
                 <span className="text-xs font-medium">{item.label}</span>
-              </a>
+              </button>
             </Link>
           );
         })}
