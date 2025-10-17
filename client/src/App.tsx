@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AlertManagerProvider } from "@/lib/alertManager";
+import { WebSocketProvider } from "@/lib/WebSocketProvider";
 import { BottomNav } from "@/components/BottomNav";
 import Watchlist from "@/pages/Watchlist";
 import Coin from "@/pages/Coin";
@@ -33,8 +34,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AlertManagerProvider>
-          <Toaster />
-          <Router />
+          <WebSocketProvider>
+            <Toaster />
+            <Router />
+          </WebSocketProvider>
         </AlertManagerProvider>
       </TooltipProvider>
     </QueryClientProvider>

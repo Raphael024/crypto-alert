@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Plus, Search, TrendingUp } from "lucide-react";
+import { Plus, Search, TrendingUp, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PriceCard } from "@/components/PriceCard";
+import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
+import { useWebSocketContext } from "@/lib/WebSocketProvider";
 import type { Watch, CoinPrice } from "@shared/schema";
 
 export default function Watchlist() {
@@ -14,11 +16,14 @@ export default function Watchlist() {
     queryKey: ["/api/watchlist"],
   });
 
-  // Fetch prices for watched coins
+  // Fetch prices for watched coins (fallback)
   const { data: prices } = useQuery<Record<string, CoinPrice>>({
     queryKey: ["/api/prices"],
-    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchInterval: 10000, // Fallback refresh every 10 seconds
   });
+
+  // WebSocket for real-time prices
+  const { isConnected, getPrice } = useWebSocketContext();
 
   const filteredWatchlist = watchlist?.filter((watch) =>
     watch.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -33,7 +38,13 @@ export default function Watchlist() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">Crypto Buzz</h1>
-              <p className="text-sm text-muted-foreground">Real-time Price Alerts</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">Real-time Price Alerts</p>
+                <Badge variant={isConnected ? "default" : "secondary"} className="flex items-center gap-1">
+                  {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                  {isConnected ? "Live" : "Offline"}
+                </Badge>
+              </div>
             </div>
             <Button size="icon" variant="outline" data-testid="button-add-coin">
               <Plus className="h-5 w-5" />
@@ -66,12 +77,14 @@ export default function Watchlist() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredWatchlist.map((watch) => {
               const price = prices?.[watch.symbol];
+              const wsPrice = getPrice(watch.symbol);
+              
               return (
                 <PriceCard
                   key={watch.id}
                   symbol={watch.symbol}
                   name={watch.name}
-                  price={price?.price || 0}
+                  price={wsPrice || price?.price || 0}
                   change24h={price?.change24h || 0}
                   sparkline={price?.sparkline}
                   onClick={() => window.location.href = `/coin/${watch.symbol}`}
