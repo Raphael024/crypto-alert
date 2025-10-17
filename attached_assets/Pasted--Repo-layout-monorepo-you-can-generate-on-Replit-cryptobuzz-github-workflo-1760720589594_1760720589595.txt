@@ -1,0 +1,336 @@
+
+
+# Repo layout (monorepo you can generate on Replit)
+
+```
+cryptobuzz/
+  .github/
+    workflows/ci.yml
+    ISSUE_TEMPLATE/bug.md
+    ISSUE_TEMPLATE/feature.md
+    PULL_REQUEST_TEMPLATE.md
+  apps/
+    server/               # Node + Express + Socket.IO + Prisma
+      src/
+        index.ts
+        env.ts
+        routes/
+          alerts.ts
+          news.ts
+          health.ts
+        alerts/engine.ts
+        prices/binance.ts
+        prices/coingecko.ts
+        prices/streamHub.ts
+        news/cryptopanic.ts
+        lib/push.ts
+        lib/symbols.ts
+      prisma/schema.prisma
+      package.json
+      tsconfig.json
+    web/                  # Vite + React + TS + Service Worker
+      public/manifest.webmanifest
+      src/
+        main.tsx
+        app.tsx
+        api.ts
+        push.ts
+        sw.ts
+        pages/{Watchlist.tsx,Coin.tsx,Alerts.tsx,News.tsx,Settings.tsx}
+        components/{PriceBell.tsx,AlarmSheet.tsx,MiniChart.tsx}
+      index.html
+      package.json
+      tsconfig.json
+  packages/
+    shared/               # zod schemas, types, utils
+      src/{types.ts,schemas.ts}
+      package.json
+      tsconfig.json
+  infra/
+    env/.env.example
+  package.json
+  README.md
+```
+
+---
+
+# Environment & secrets
+
+**/infra/env/.env.example**
+
+```
+# Server
+PORT=3000
+DATABASE_URL=postgresql://USER:PASS@HOST:5432/cryptobuzz
+COINGECKO_API_KEY=
+CRYPTOPANIC_TOKEN=
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:you@example.com
+
+# Web
+VITE_PUBLIC_WS_URL=http://localhost:3000
+```
+
+Generate VAPID keys:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+---
+
+# Minimal Prisma schema (apps/server/prisma/schema.prisma)
+
+```prisma
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+generator client { provider = "prisma-client-js" }
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  pushEndpoint  Json?
+  createdAt     DateTime @default(now())
+  watches       Watch[]
+  alerts        Alert[]
+}
+
+model Watch {
+  id        String   @id @default(cuid())
+  userId    String
+  symbol    String   // e.g., BTC
+  geckoId   String   // e.g., bitcoin
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+enum AlertType { price pct_move day_levels vwap rsi }
+
+model Alert {
+  id          String    @id @default(cuid())
+  userId      String
+  symbol      String
+  type        AlertType
+  params      Json       // { level, direction, windowMins, pct, ... }
+  active      Boolean    @default(true)
+  snoozeUntil DateTime?
+  createdAt   DateTime   @default(now())
+  User        User       @relation(fields: [userId], references: [id])
+  fires       AlertFire[]
+}
+
+model AlertFire {
+  id        String   @id @default(cuid())
+  alertId   String
+  symbol    String
+  price     Decimal  @db.Decimal(18,8)
+  firedAt   DateTime @default(now())
+  Alert     Alert    @relation(fields: [alertId], references: [id])
+}
+```
+
+---
+
+# NPM scripts (root & apps)
+
+**/package.json (root)**
+
+```json
+{
+  "name": "cryptobuzz",
+  "private": true,
+  "workspaces": ["apps/*","packages/*"],
+  "scripts": {
+    "dev": "concurrently -k -n SERVER,WEB \"pnpm --filter @cb/server dev\" \"pnpm --filter @cb/web dev\"",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "pnpm -r run lint",
+    "build": "pnpm -r run build"
+  },
+  "devDependencies": { "concurrently": "^9.0.0" }
+}
+```
+
+**/apps/server/package.json**
+
+```json
+{
+  "name": "@cb/server",
+  "type": "module",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "prisma:push": "prisma db push"
+  },
+  "dependencies": {
+    "express": "^4",
+    "socket.io": "^4",
+    "zod": "^3",
+    "@prisma/client": "^5",
+    "dotenv": "^16",
+    "web-push": "^3",
+    "axios": "^1"
+  },
+  "devDependencies": {
+    "prisma": "^5",
+    "ts-node-dev": "^2",
+    "typescript": "^5"
+  }
+}
+```
+
+**/apps/web/package.json**
+
+```json
+{
+  "name": "@cb/web",
+  "private": true,
+  "scripts": { "dev": "vite", "build": "vite build", "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "react": "^18",
+    "react-dom": "^18",
+    "socket.io-client": "^4"
+  },
+  "devDependencies": { "typescript": "^5", "vite": "^5" }
+}
+```
+
+---
+
+# CI/CD (GitHub Actions)
+
+**.github/workflows/ci.yml**
+
+```yaml
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'pnpm' }
+      - run: pnpm install
+      - run: pnpm typecheck
+      - run: pnpm lint || echo "no lints yet"
+      - run: echo "✅ CI passed"
+```
+
+---
+
+# Issue/PR hygiene
+
+**.github/ISSUE_TEMPLATE/feature.md**
+
+```markdown
+## Summary
+<!-- one line -->
+
+## Acceptance Criteria
+- [ ] ...
+
+## Notes
+Context, links, mocks.
+```
+
+**.github/ISSUE_TEMPLATE/bug.md**
+
+```markdown
+## Bug
+What happened vs expected
+
+## Repro
+Steps
+
+## Env
+Browser/device
+```
+
+**.github/PULL_REQUEST_TEMPLATE.md**
+
+```markdown
+## What
+Summary
+
+## How to test
+Steps
+
+## Checklist
+- [ ] Tests/QA done
+- [ ] No secrets committed
+```
+
+---
+
+# Dev flow (Replit → GitHub → Codex)
+
+1. **On Replit**
+
+   * Create the folders/files above (or ask me to dump starter stubs).
+   * `pnpm install` at root → `pnpm --filter @cb/server prisma:push` → `pnpm dev`.
+   * Open the web app → enable push → set a BTC alert → test with a “simulate tick” endpoint you’ll add:
+
+     * `GET /alerts/test-fire?symbol=BTC&price=...`
+2. **Push to GitHub**
+
+   * Use Replit’s Git panel → connect repo → push `main`.
+3. **Hand to Codex**
+
+   * Open issues labeled **“Phase 2”**: RSI/VWAP alerts, repeat/snooze state machine, Why-moving card, news dedupe, tests, Swagger docs, Capacitor wrapper.
+   * Paste the **Finishing Brief** I gave earlier.
+
+---
+
+# What Codex should do next (your backlog)
+
+* **Reliability pass:** single-fire on cross, repeat every N mins until Stop, snooze persistence.
+* **Indicators:** RSI(14), VWAP, %move windows (1/5/15m).
+* **Why card:** `/why?symbol=` → headlines + 15m change + volume blip.
+* **News quality:** dedupe by URL/title hash; source badges; hide dupes in 24h.
+* **Docs & tests:** Swagger `/docs`, unit+integration tests for alert engine, SW push actions.
+* **Capacitor bridge:** iOS/Android wrappers for true background sounds later.
+
+---
+
+# Quick server stubs you’ll want (drop-in)
+
+**apps/server/src/index.ts (minimal skeleton)**
+
+```ts
+import 'dotenv/config'
+import express from 'express'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
+import alerts from './routes/alerts.js'
+import news from './routes/news.js'
+import health from './routes/health.js'
+
+const app = express()
+app.use(express.json())
+app.use('/alerts', alerts)
+app.use('/news', news)
+app.use('/healthz', health)
+
+const httpServer = createServer(app)
+export const io = new Server(httpServer, { cors: { origin: '*' } })
+
+httpServer.listen(process.env.PORT || 3000, () => {
+  console.log('server on', process.env.PORT || 3000)
+})
+```
+
+**apps/server/src/routes/health.ts**
+
+```ts
+import { Router } from 'express'
+const r = Router()
+r.get('/', (_,res)=>res.json({ ok:true }))
+export default r
+```
+
+

@@ -1,0 +1,126 @@
+Love it — let’s spin this up on Replit fast.
+
+# Copy-paste Prompt for Replit (use in “Generate”)
+
+> **Title:** Crypto Buzz — iPhone-alarm grade price alerts + trusted crypto news
+> **Goal:** Build a production-ready MVP that **beeps like an iPhone alarm** exactly at user-chosen prices and shows **credible crypto news** per coin.
+>
+> **Deliverables (monorepo):**
+>
+> * `apps/mobile` — **Expo React Native** app (iOS/Android):
+>
+>   * Screens: Onboarding, Watchlist, Coin Detail (chart + “drag bell to price”), Alerts (create/edit), News, Settings.
+>   * Local notifications + background tasks. iOS: Live Activities stub; Android: exact alarm stub.
+> * `apps/server` — **Node/Express** (TypeScript) with **WebSocket**:
+>
+>   * Endpoints: `/alerts`, `/users`, `/news`, `/coins`.
+>   * Workers: `price-stream` (CoinGecko WS + Binance WS), `alert-engine`, `news-ingest`.
+> * `packages/shared` — shared types, validation (Zod), utils.
+> * `infra` — Dockerfile(s), `docker-compose.dev.yml`, seed scripts.
+>
+> **Core features for v1:**
+>
+> 1. **Price alerts = true alarm semantics**
+>
+>    * Fire **local alarm** (sound/vibrate) even if app is backgrounded.
+>    * Snooze (5/10/30m), repeat until acknowledged, per-coin ringtone.
+> 2. **Alert types**
+>
+>    * Price touch/cross; ±% move in X minutes; daily high/low, 24h VWAP (preset buttons).
+> 3. **Trusted news**
+>
+>    * Ingest from **CryptoPanic API** (with sentiment, source, tags).
+>    * Per-coin news feed + a “Why is it moving?” card shown when an alert fires.
+> 4. **Low-latency price stream**
+>
+>    * **Primary:** CoinGecko WS (paid tiers) or REST fallback.
+>    * **Supplemental:** Binance WS (spot) for pairs the user watches.
+>    * De-dupe + “best latest” selector.
+>
+> **Tech choices:**
+>
+> * Mobile: Expo (React Native, TypeScript), React Query, Zustand, Victory charts.
+> * Server: Node 20 + Express + Socket.IO, BullMQ (Redis) for jobs, Prisma + Postgres.
+> * Auth: email magic link (Clerk or your simple OTP).
+> * Push: Expo Notifications (later: APNs/FCM direct).
+>
+> **Data sources (implement now):**
+>
+> * **Prices:**
+>
+>   * CoinGecko API + WebSocket (`/simple/price` fallback, WS for live). Put `COINGECKO_API_KEY` in `.env`. ([docs.coingecko.com][1])
+>   * Binance WebSocket (`<symbol>@aggTrade`, 100ms updates) for BTC/ETH/SOL, etc. ([Binance Developers][2])
+> * **News:**
+>
+>   * **CryptoPanic API** (`/posts/` with `auth_token`, filters for currencies, kind, regions). Store `CRYPTOPANIC_TOKEN` in `.env`. ([CryptoPanic][3])
+>
+> **Mobile alarm specifics (code stubs required):**
+>
+> * **iOS:** Provide a module + settings screen copy to request **Critical Alerts** entitlement; use loud sound for alert category; add **Live Activity** showing price marching toward target. (Link Apple docs in README.) ([Apple Developer][4])
+> * **Android:** Use `AlarmManager` + `SCHEDULE_EXACT_ALARM` (check `canScheduleExactAlarms()`), foreground service for reliability; settings toggle to bypass DND for coin alarms. Add docs note for Android 14 changes. ([Android Developers][5])
+>
+> **Server behaviors:**
+>
+> * `price-stream` subscribes to CoinGecko WS for watched coin IDs; if not available, subscribe to Binance WS symbols; keeps an in-memory map `{coinId: lastPrice, ts}`.
+> * `alert-engine` evaluates rules every tick and on each incoming tick; de-bounces; when condition met → write `alerts_fired` row and emit `alert:trigger` via Socket.IO + push to device.
+> * `news-ingest` pulls CryptoPanic every 60–120s (respect rate limits), stores normalized `news_items` with `source`, `reliability_score`, `currencies[]`, `sentiment`.
+>
+> **DB schema (Prisma):**
+>
+> * `User(id, email, createdAt)`
+> * `Watch(id, userId, coinId, symbol)`
+> * `Alert(id, userId, coinId, type ENUM['price','pct_move','vwap','day_high_low'], params JSON, active BOOL)`
+> * `AlertFire(id, alertId, coinId, price, firedAt)`
+> * `NewsItem(id, title, url, source, sentiment, currencies STRING[], publishedAt, score)`
+>
+> **Alert UX requirements:**
+>
+> * Long-press chart → **drag bell** to set level, or tap **presets** (+1%, −5%, yesterday high/low).
+> * Alarm sheet on fire: **Stop / Snooze**, mini-chart, **Top 3 headlines** (CryptoPanic), “Set follow-up if ±1%”.
+>
+> **.env (both):**
+>
+> ```
+> COINGECKO_API_KEY=...
+> CRYPTOPANIC_TOKEN=...
+> REDIS_URL=redis://localhost:6379
+> DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cryptobuzz
+> EXPO_PUBLIC_WS_URL=http://localhost:4000
+> ```
+>
+> **Quality bar / acceptance tests:**
+>
+> * Create alert for BTC at a test price → **device beeps** in <3s of crossing (simulated stream OK).
+> * Toggle DND → Android exact alarm still rings (if user granted permission); iOS plays critical alert sound after entitlement. ([Android Developers][5])
+> * Alert screen shows 3 deduped headlines tied to BTC from CryptoPanic with sentiment.
+>
+> **Bonus (scaffold only):**
+>
+> * “Why is it moving?” server route that returns: top headlines + 15-min % change + volume burst flag.
+> * Apple Watch / Wear OS notification actions: Stop/Snooze.
+>
+> **Docs to include in README:**
+>
+> * Links to **CryptoPanic API** & **widgets/guides**; **CoinGecko API & WS**; **Binance WS**; **Apple Critical Alerts**; **Android exact alarms**. ([CryptoPanic][3])
+>
+> **Run commands:**
+>
+> * `docker compose -f infra/docker-compose.dev.yml up -d`
+> * `cd apps/server && pnpm dev`
+> * `cd apps/mobile && pnpm start`
+
+---
+
+## Where we’ll get news (and why)
+
+* **CryptoPanic API** is the standard crypto news/sentiment aggregator with free/paid JSON API, filters by currency, and strong source coverage — perfect for your per-coin “Why is it moving?” panel. Start here. ([CryptoPanic][3])
+* You can later add official coin sources (foundation blogs/X handles) and RSS (e.g., CoinDesk/Cointelegraph) — but CryptoPanic already aggregates most of these with sentiment + metadata and even has widgets/bots if you want quick integrations. ([CryptoPanic][6])
+
+If you want, I can also drop in starter files (Express routes, Expo screens, Prisma schema) right away so you can hit “Run” and test a fake price cross that **rings like an alarm**.
+
+[1]: https://docs.coingecko.com/?utm_source=chatgpt.com "CoinGecko API: Introduction"
+[2]: https://developers.binance.com/docs/binance-spot-api-docs/web-socket-streams?utm_source=chatgpt.com "WebSocket Streams | Binance Open Platform"
+[3]: https://cryptopanic.com/developers/api/?utm_source=chatgpt.com "API Reference"
+[4]: https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.usernotifications.critical-alerts?utm_source=chatgpt.com "Critical Alerts | Apple Developer Documentation"
+[5]: https://developer.android.com/develop/background-work/services/alarms?utm_source=chatgpt.com "Schedule alarms | Background work"
+[6]: https://cryptopanic.com/developers/?utm_source=chatgpt.com "CryptoPanic Developer Platform"
