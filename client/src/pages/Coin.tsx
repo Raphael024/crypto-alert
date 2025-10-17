@@ -4,7 +4,9 @@ import { ArrowLeft, Bell, Plus, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import type { CoinPrice, NewsItem } from "@shared/schema";
 
@@ -13,6 +15,7 @@ export default function Coin() {
   const symbol = params?.symbol?.toUpperCase() || "";
   const [dragPosition, setDragPosition] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const { toast } = useToast();
 
   // Fetch coin price
   const { data: price } = useQuery<CoinPrice>({
@@ -23,6 +26,27 @@ export default function Coin() {
   // Fetch coin news
   const { data: news } = useQuery<NewsItem[]>({
     queryKey: ["/api/news", symbol],
+  });
+
+  // Create alert mutation
+  const createAlertMutation = useMutation({
+    mutationFn: async (data: { symbol: string; type: string; params: any }) => {
+      return apiRequest("POST", "/api/alerts", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
+      toast({
+        title: "Alert created!",
+        description: `You'll be notified when ${symbol} hits your target price.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to create alert",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const isPositive = (price?.change24h || 0) >= 0;
@@ -49,10 +73,32 @@ export default function Coin() {
 
   const handleDragEnd = () => {
     setIsDragging(false);
-    if (dragPosition) {
-      // Create alert with dragPosition as target price
-      console.log("Create alert at price:", dragPosition);
+    if (dragPosition && price) {
+      const direction = dragPosition > price.price ? "above" : "below";
+      createAlertMutation.mutate({
+        symbol,
+        type: "price",
+        params: {
+          level: dragPosition,
+          direction,
+        },
+      });
+      setDragPosition(null);
     }
+  };
+
+  const handlePresetAlert = (targetPrice: number, label: string) => {
+    if (!price) return;
+    
+    const direction = targetPrice > price.price ? "above" : "below";
+    createAlertMutation.mutate({
+      symbol,
+      type: "price",
+      params: {
+        level: targetPrice,
+        direction,
+      },
+    });
   };
 
   const presetAlerts = [
@@ -125,7 +171,7 @@ export default function Coin() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Volume</p>
-                <p className="text-lg font-mono font-semibold" data-testid="text-volume">${(price?.volume24h / 1e9).toFixed(2) || "0"}B</p>
+                <p className="text-lg font-mono font-semibold" data-testid="text-volume">${((price?.volume24h || 0) / 1e9).toFixed(2)}B</p>
               </div>
             </div>
           </div>
@@ -193,6 +239,8 @@ export default function Coin() {
                 key={i}
                 variant="outline"
                 className="flex-shrink-0 gap-2"
+                onClick={() => handlePresetAlert(preset.value, preset.label)}
+                disabled={createAlertMutation.isPending}
                 data-testid={`button-preset-${i}`}
               >
                 <Plus className="h-4 w-4" />
