@@ -1,12 +1,13 @@
-import { Home, Bell, Newspaper, Settings } from "lucide-react";
+import { PieChart, Wallet, Newspaper, Bell, Settings as SettingsIcon } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { icon: Home, label: "Watchlist", path: "/" },
-  { icon: Bell, label: "Alerts", path: "/alerts" },
+  { icon: PieChart, label: "Portfolios", path: "/portfolios" },
+  { icon: Wallet, label: "Cryptos", path: "/" },
   { icon: Newspaper, label: "News", path: "/news" },
-  { icon: Settings, label: "Settings", path: "/settings" },
+  { icon: Bell, label: "Alerts", path: "/alerts" },
+  { icon: SettingsIcon, label: "Settings", path: "/settings" },
 ];
 
 export function BottomNav() {
@@ -23,7 +24,7 @@ export function BottomNav() {
             <Link key={item.path} href={item.path}>
               <button
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[64px]",
+                  "flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-lg transition-colors flex-1",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"

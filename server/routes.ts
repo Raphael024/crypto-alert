@@ -173,6 +173,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/top-coins", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 200;
+      const coins = await cmcService.getTopCoins(limit);
+      res.json(coins);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch top coins" });
+    }
+  });
+
   // News routes
   app.get("/api/news", async (req, res) => {
     try {

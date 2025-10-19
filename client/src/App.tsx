@@ -6,7 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AlertManagerProvider } from "@/lib/alertManager";
 import { WebSocketProvider } from "@/lib/WebSocketProvider";
 import { BottomNav } from "@/components/BottomNav";
-import Watchlist from "@/pages/Watchlist";
+import AllCryptos from "@/pages/AllCryptos";
+import Portfolios from "@/pages/Portfolios";
 import Coin from "@/pages/Coin";
 import Alerts from "@/pages/Alerts";
 import News from "@/pages/News";
@@ -17,7 +18,8 @@ function Router() {
   return (
     <div className="pb-16 md:pb-0">
       <Switch>
-        <Route path="/" component={Watchlist} />
+        <Route path="/" component={AllCryptos} />
+        <Route path="/portfolios" component={Portfolios} />
         <Route path="/coin/:symbol" component={Coin} />
         <Route path="/alerts" component={Alerts} />
         <Route path="/news" component={News} />

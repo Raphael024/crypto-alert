@@ -22,7 +22,9 @@ const POPULAR_SYMBOLS = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'MATI
 
 export class CoinMarketCapService {
   private priceCache: Map<string, CoinPrice> = new Map();
+  private topCoinsCache: CoinPrice[] = [];
   private lastUpdate: number = 0;
+  private lastTopCoinsUpdate: number = 0;
 
   async getLatestPrices(symbols?: string[]): Promise<Record<string, CoinPrice>> {
     const targetSymbols = symbols || POPULAR_SYMBOLS;
@@ -93,6 +95,58 @@ export class CoinMarketCapService {
   async getCoinPrice(symbol: string): Promise<CoinPrice | null> {
     const prices = await this.getLatestPrices([symbol]);
     return prices[symbol] || null;
+  }
+
+  async getTopCoins(limit: number = 200): Promise<CoinPrice[]> {
+    const now = Date.now();
+
+    // Cache for 60 seconds to avoid rate limits
+    if (now - this.lastTopCoinsUpdate < 60000 && this.topCoinsCache.length > 0) {
+      return this.topCoinsCache.slice(0, limit);
+    }
+
+    try {
+      const response = await fetch(
+        `${CMC_BASE_URL}/cryptocurrency/listings/latest?start=1&limit=${limit}&convert=USD`,
+        {
+          headers: {
+            'X-CMC_PRO_API_KEY': CMC_API_KEY || '',
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`CMC API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const result: CoinPrice[] = [];
+
+      data.data.forEach((coin: any) => {
+        const coinPrice: CoinPrice = {
+          symbol: coin.symbol,
+          name: coin.name,
+          price: coin.quote.USD.price,
+          change24h: coin.quote.USD.percent_change_24h,
+          volume24h: coin.quote.USD.volume_24h,
+          marketCap: coin.quote.USD.market_cap,
+          high24h: coin.quote.USD.price * (1 + Math.abs(coin.quote.USD.percent_change_24h) / 100),
+          low24h: coin.quote.USD.price * (1 - Math.abs(coin.quote.USD.percent_change_24h) / 100),
+          sparkline: this.generateSparkline(coin.quote.USD.price, coin.quote.USD.percent_change_24h),
+        };
+        result.push(coinPrice);
+      });
+
+      this.topCoinsCache = result;
+      this.lastTopCoinsUpdate = now;
+      return result;
+    } catch (error) {
+      console.error('CoinMarketCap API error:', error);
+      
+      // Return cached data if available
+      return this.topCoinsCache.slice(0, limit);
+    }
   }
 
   private generateSparkline(currentPrice: number, change24h: number): number[] {
