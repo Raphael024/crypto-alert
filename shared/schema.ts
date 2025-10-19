@@ -5,7 +5,19 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const alertTypeEnum = pgEnum('alert_type', ['price', 'pct_move', 'day_levels', 'vwap']);
+export const alertTypeEnum = pgEnum('alert_type', [
+  'price', 
+  'pct_move', 
+  'day_levels', 
+  'vwap',
+  // Recommended alert types
+  'trending_news',
+  'breaking_news',
+  'important_updates',
+  'price_spikes',
+  'volume_spikes',
+  'trading_spikes'
+]);
 export const sentimentEnum = pgEnum('sentiment', ['positive', 'negative', 'neutral']);
 
 // Users table
@@ -60,10 +72,43 @@ export const newsItems = pgTable("news_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Portfolios table
+export const portfolios = pgTable("portfolios", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Portfolio holdings
+export const holdings = pgTable("holdings", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  portfolioId: varchar("portfolio_id", { length: 36 }).references(() => portfolios.id, { onDelete: 'cascade' }),
+  symbol: text("symbol").notNull(),
+  amount: decimal("amount", { precision: 18, scale: 8 }).notNull(),
+  avgBuyPrice: decimal("avg_buy_price", { precision: 18, scale: 8 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// User settings
+export const userSettings = pgTable("user_settings", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id, { onDelete: 'cascade' }).unique(),
+  theme: text("theme").default('dark'),
+  currency: text("currency").default('USD'),
+  notifications: boolean("notifications").default(true),
+  soundEnabled: boolean("sound_enabled").default(true),
+  vibrationEnabled: boolean("vibration_enabled").default(true),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   watches: many(watches),
   alerts: many(alerts),
+  portfolios: many(portfolios),
+  settings: one(userSettings),
 }));
 
 export const watchesRelations = relations(watches, ({ one }) => ({
@@ -85,6 +130,28 @@ export const alertFiresRelations = relations(alertFires, ({ one }) => ({
   alert: one(alerts, {
     fields: [alertFires.alertId],
     references: [alerts.id],
+  }),
+}));
+
+export const portfoliosRelations = relations(portfolios, ({ one, many }) => ({
+  user: one(users, {
+    fields: [portfolios.userId],
+    references: [users.id],
+  }),
+  holdings: many(holdings),
+}));
+
+export const holdingsRelations = relations(holdings, ({ one }) => ({
+  portfolio: one(portfolios, {
+    fields: [holdings.portfolioId],
+    references: [portfolios.id],
+  }),
+}));
+
+export const userSettingsRelations = relations(userSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [userSettings.userId],
+    references: [users.id],
   }),
 }));
 
@@ -125,6 +192,27 @@ export const insertNewsItemSchema = createInsertSchema(newsItems).pick({
   score: true,
 });
 
+export const insertPortfolioSchema = createInsertSchema(portfolios).pick({
+  userId: true,
+  name: true,
+});
+
+export const insertHoldingSchema = createInsertSchema(holdings).pick({
+  portfolioId: true,
+  symbol: true,
+  amount: true,
+  avgBuyPrice: true,
+});
+
+export const insertUserSettingsSchema = createInsertSchema(userSettings).pick({
+  userId: true,
+  theme: true,
+  currency: true,
+  notifications: true,
+  soundEnabled: true,
+  vibrationEnabled: true,
+});
+
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -141,6 +229,15 @@ export type InsertAlertFire = z.infer<typeof insertAlertFireSchema>;
 
 export type NewsItem = typeof newsItems.$inferSelect;
 export type InsertNewsItem = z.infer<typeof insertNewsItemSchema>;
+
+export type Portfolio = typeof portfolios.$inferSelect;
+export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
+
+export type Holding = typeof holdings.$inferSelect;
+export type InsertHolding = z.infer<typeof insertHoldingSchema>;
+
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
 
 // API response types
 export type CoinPrice = {
