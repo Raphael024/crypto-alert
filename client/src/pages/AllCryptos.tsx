@@ -123,11 +123,26 @@ export default function AllCryptos() {
                   {index + 1}
                 </span>
 
-                {/* Icon placeholder */}
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-primary">
-                    {coin.symbol.charAt(0)}
-                  </span>
+                {/* Coin Logo */}
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {coin.logoUrl ? (
+                    <img 
+                      src={coin.logoUrl} 
+                      alt={coin.symbol}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback to initial if image fails to load
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement!.innerHTML = `<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center"><span class="text-xs font-bold text-primary">${coin.symbol.charAt(0)}</span></div>`;
+                      }}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                      <span className="text-xs font-bold text-primary">
+                        {coin.symbol.charAt(0)}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Symbol and Name */}

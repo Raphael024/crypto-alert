@@ -250,6 +250,8 @@ export type CoinPrice = {
   high24h: number;
   low24h: number;
   sparkline?: number[];
+  logoUrl?: string;
+  cmcId?: number;
 };
 
 export type PriceUpdate = {

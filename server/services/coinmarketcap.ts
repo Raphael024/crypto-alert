@@ -134,6 +134,8 @@ export class CoinMarketCapService {
           high24h: coin.quote.USD.price * (1 + Math.abs(coin.quote.USD.percent_change_24h) / 100),
           low24h: coin.quote.USD.price * (1 - Math.abs(coin.quote.USD.percent_change_24h) / 100),
           sparkline: this.generateSparkline(coin.quote.USD.price, coin.quote.USD.percent_change_24h),
+          logoUrl: `https://s2.coinmarketcap.com/static/img/coins/64x64/${coin.id}.png`,
+          cmcId: coin.id,
         };
         result.push(coinPrice);
       });
