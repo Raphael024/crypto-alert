@@ -33,19 +33,32 @@ interface CustomAlertModalProps {
       pct?: number;
       oneTime?: boolean;
       sound?: string;
+      exchange?: string;
     };
   }) => void;
+  preselectedSymbol?: string;
 }
 
 const ALERT_SOUNDS = [
-  { value: "chime", label: "Chime" },
-  { value: "bell", label: "Bell" },
-  { value: "ding", label: "Ding" },
-  { value: "alert", label: "Alert" },
-  { value: "whistle", label: "Whistle" },
+  { value: "chime", label: "🔔 Chime" },
+  { value: "bell", label: "🔕 Bell" },
+  { value: "ding", label: "📳 Ding" },
+  { value: "alert", label: "⚠️ Alert" },
+  { value: "whistle", label: "🎵 Whistle" },
+  { value: "radar", label: "📡 Radar" },
+  { value: "beep", label: "🔊 Beep" },
+  { value: "notification", label: "📢 Notification" },
 ];
 
-export function CustomAlertModal({ open, onOpenChange, onSubmit }: CustomAlertModalProps) {
+const EXCHANGES = [
+  { value: "global", label: "Global Average", icon: "🌐" },
+  { value: "coinbase", label: "Coinbase", icon: "💼" },
+  { value: "binance", label: "Binance", icon: "🔶" },
+  { value: "kraken", label: "Kraken", icon: "🦑" },
+  { value: "crypto.com", label: "Crypto.com", icon: "💎" },
+];
+
+export function CustomAlertModal({ open, onOpenChange, onSubmit, preselectedSymbol }: CustomAlertModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCoin, setSelectedCoin] = useState<CoinPrice | null>(null);
   const [alertMode, setAlertMode] = useState<"price" | "percentage">("price");
@@ -54,12 +67,21 @@ export function CustomAlertModal({ open, onOpenChange, onSubmit }: CustomAlertMo
   const [targetPercentage, setTargetPercentage] = useState("");
   const [oneTime, setOneTime] = useState(false);
   const [sound, setSound] = useState("chime");
+  const [exchange, setExchange] = useState("global");
   const [enablePush, setEnablePush] = useState(true);
   const [enableEmail, setEnableEmail] = useState(false);
 
   const { data: coins = [] } = useQuery<CoinPrice[]>({
     queryKey: ["/api/top-coins"],
   });
+
+  // Auto-select coin if preselectedSymbol is provided
+  if (preselectedSymbol && !selectedCoin && coins.length > 0) {
+    const preselected = coins.find(c => c.symbol === preselectedSymbol);
+    if (preselected) {
+      setSelectedCoin(preselected);
+    }
+  }
 
   const filteredCoins = coins.filter(
     (coin) =>
@@ -82,6 +104,7 @@ export function CustomAlertModal({ open, onOpenChange, onSubmit }: CustomAlertMo
           : { pct: parseFloat(targetPercentage), direction }),
         oneTime,
         sound,
+        exchange,
       },
     });
 
@@ -307,6 +330,28 @@ export function CustomAlertModal({ open, onOpenChange, onSubmit }: CustomAlertMo
                     </div>
                   </div>
                 )}
+
+                {/* Exchange Selection */}
+                <div className="space-y-3">
+                  <Label htmlFor="exchange" className="text-sm font-semibold">
+                    Price Source / Exchange
+                  </Label>
+                  <Select value={exchange} onValueChange={setExchange}>
+                    <SelectTrigger id="exchange" data-testid="select-exchange">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXCHANGES.map((ex) => (
+                        <SelectItem key={ex.value} value={ex.value}>
+                          {ex.icon} {ex.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Alert will trigger based on price from selected source
+                  </p>
+                </div>
 
                 {/* Alert Sound */}
                 <div className="space-y-3">
