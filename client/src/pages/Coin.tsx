@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { CoinPrice, NewsItem } from "@shared/schema";
 import { CustomAlertModal } from "@/components/CustomAlertModal";
+import { CalculatorModal } from "@/components/CalculatorModal";
+import { WikiModal } from "@/components/WikiModal";
 
 type TimePeriod = '1H' | '1D' | '1W' | '1M' | '3M' | '1Y' | 'ALL';
 type ChartMode = 'Price' | 'Volume';
@@ -361,45 +363,19 @@ export default function Coin() {
         onSubmit={(alert) => createCustomAlertMutation.mutate(alert)}
       />
 
-      {/* Calculator Placeholder */}
-      {showCalculator && (
-        <div 
-          className="fixed inset-0 bg-background/95 z-50 flex items-center justify-center"
-          onClick={() => setShowCalculator(false)}
-        >
-          <Card className="p-6 max-w-sm w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Calculator</h3>
-              <Button variant="ghost" size="icon" onClick={() => setShowCalculator(false)}>
-                ✕
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Calculator feature coming soon...
-            </p>
-          </Card>
-        </div>
-      )}
+      {/* Calculator */}
+      <CalculatorModal
+        open={showCalculator}
+        onClose={() => setShowCalculator(false)}
+        currentCoin={price}
+      />
 
-      {/* Wiki Placeholder */}
-      {showWiki && (
-        <div 
-          className="fixed inset-0 bg-background/95 z-50 flex items-center justify-center"
-          onClick={() => setShowWiki(false)}
-        >
-          <Card className="p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Wiki</h3>
-              <Button variant="ghost" size="icon" onClick={() => setShowWiki(false)}>
-                ✕
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Wiki information for {symbol} coming soon...
-            </p>
-          </Card>
-        </div>
-      )}
+      {/* Wiki */}
+      <WikiModal
+        open={showWiki}
+        onClose={() => setShowWiki(false)}
+        coin={price}
+      />
     </div>
   );
 }
