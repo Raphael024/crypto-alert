@@ -1,23 +1,40 @@
 import { useState } from "react";
-import { ExternalLink, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ExternalLink, TrendingUp, TrendingDown, Minus, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import type { NewsItem } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
-
-const filterOptions = [
-  { label: "All", value: "all" },
-  { label: "Portfolio", value: "portfolio" },
-  { label: "Crypto", value: "crypto" },
-  { label: "Fiat", value: "fiat" },
-];
+import { NewsFilterSheet } from "@/components/NewsFilterSheet";
 
 export default function News() {
   const [activeFilter, setActiveFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
-  const { data: news, isLoading } = useQuery<NewsItem[]>({
+  const { data: allNews, isLoading } = useQuery<NewsItem[]>({
     queryKey: ["/api/news"],
+  });
+
+  // Filter news based on search and filter selections
+  const news = allNews?.filter((item) => {
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        item.title.toLowerCase().includes(query) ||
+        item.source.toLowerCase().includes(query) ||
+        item.currencies?.some((c: string) => c.toLowerCase().includes(query));
+      if (!matchesSearch) return false;
+    }
+
+    // Source filter (all, saved, favorites, portfolio)
+    // For now, we only support "all" - other filters would need backend support
+    if (activeFilter !== "all") {
+      return false; // Not implemented yet
+    }
+
+    return true;
   });
 
   const getSentimentIcon = (sentiment: string) => {
@@ -46,23 +63,34 @@ export default function News() {
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-4">
-        <h1 className="text-3xl font-bold mb-3">News</h1>
-        
-        {/* Filter Pills */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {filterOptions.map((option) => (
-            <Button
-              key={option.value}
-              variant={activeFilter === option.value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveFilter(option.value)}
-              className={activeFilter === option.value ? "" : ""}
-              data-testid={`filter-${option.value}`}
-            >
-              {option.label}
-            </Button>
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-3xl font-bold">News</h1>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setFilterSheetOpen(true)}
+            data-testid="button-open-filter"
+          >
+            <Filter className="h-5 w-5" />
+          </Button>
         </div>
+
+        {/* Active Filters Display */}
+        {(activeFilter !== "all" || searchQuery) && (
+          <div className="flex gap-2 items-center mb-2">
+            <span className="text-xs text-muted-foreground">Active:</span>
+            {activeFilter !== "all" && (
+              <Badge variant="outline" className="text-xs">
+                {activeFilter}
+              </Badge>
+            )}
+            {searchQuery && (
+              <Badge variant="outline" className="text-xs">
+                Search: {searchQuery}
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
       {/* News Feed */}
@@ -148,6 +176,16 @@ export default function News() {
           </div>
         )}
       </div>
+
+      {/* Filter Sheet */}
+      <NewsFilterSheet
+        open={filterSheetOpen}
+        onOpenChange={setFilterSheetOpen}
+        selectedFilter={activeFilter}
+        onFilterChange={setActiveFilter}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
     </div>
   );
 }
