@@ -249,6 +249,9 @@ export type CoinPrice = {
   marketCap: number;
   high24h: number;
   low24h: number;
+  circulatingSupply?: number;
+  maxSupply?: number;
+  rank?: number;
   sparkline?: number[];
   logoUrl?: string;
   cmcId?: number;
