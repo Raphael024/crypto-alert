@@ -96,20 +96,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/alerts", async (req, res) => {
     try {
+      console.log("[POST /api/alerts] Request body:", JSON.stringify(req.body, null, 2));
       const user = await storage.getUserByEmail("demo@cryptobuzz.app");
       if (!user) {
+        console.log("[POST /api/alerts] User not found");
         return res.status(401).json({ error: "User not found" });
       }
 
-      const validated = insertAlertSchema.parse({
+      console.log("[POST /api/alerts] User found:", user.id);
+      const dataToValidate = {
         ...req.body,
         userId: user.id,
-      });
+      };
+      console.log("[POST /api/alerts] Data to validate:", JSON.stringify(dataToValidate, null, 2));
+
+      const validated = insertAlertSchema.parse(dataToValidate);
+      console.log("[POST /api/alerts] Validation passed:", JSON.stringify(validated, null, 2));
 
       const alert = await storage.createAlert(validated);
+      console.log("[POST /api/alerts] Alert created successfully:", alert.id);
       res.json(alert);
     } catch (error) {
-      res.status(400).json({ error: "Invalid alert data" });
+      console.error("[POST /api/alerts] Error:", error);
+      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid alert data" });
     }
   });
 

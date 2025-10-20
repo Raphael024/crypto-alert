@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { CustomAlertModal } from "@/components/CustomAlertModal";
+import { useToast } from "@/hooks/use-toast";
 import type { Alert } from "@shared/schema";
 
 interface RecommendedAlert {
@@ -70,6 +71,7 @@ const recommendedAlerts: RecommendedAlert[] = [
 
 export default function Alerts() {
   const [customAlertModalOpen, setCustomAlertModalOpen] = useState(false);
+  const { toast } = useToast();
 
   const { data: alerts = [] } = useQuery<Alert[]>({
     queryKey: ["/api/alerts"],
@@ -77,7 +79,7 @@ export default function Alerts() {
 
   const toggleAlertMutation = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      return await apiRequest(`/api/alerts/${id}`, "PATCH", { active });
+      return await apiRequest("PATCH", `/api/alerts/${id}`, { active });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
@@ -86,7 +88,7 @@ export default function Alerts() {
 
   const createRecommendedAlertMutation = useMutation({
     mutationFn: async (alertType: string) => {
-      return await apiRequest("/api/alerts", "POST", {
+      return await apiRequest("POST", "/api/alerts", {
         symbol: "ALL", // For recommended alerts, apply to all coins
         type: alertType,
         params: {},
@@ -100,19 +102,37 @@ export default function Alerts() {
 
   const createCustomAlertMutation = useMutation({
     mutationFn: async (alert: any) => {
-      return await apiRequest("/api/alerts", "POST", {
+      console.log("[createCustomAlertMutation] Creating alert:", alert);
+      const payload = {
         ...alert,
         active: true,
-      });
+      };
+      console.log("[createCustomAlertMutation] Payload:", payload);
+      const result = await apiRequest("POST", "/api/alerts", payload);
+      console.log("[createCustomAlertMutation] Result:", result);
+      return result;
     },
     onSuccess: () => {
+      console.log("[createCustomAlertMutation] Success!");
       queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
+      toast({
+        title: "Alert Created",
+        description: "Your custom alert has been created successfully.",
+      });
+    },
+    onError: (error: any) => {
+      console.error("[createCustomAlertMutation] Error:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to create alert",
+        variant: "destructive",
+      });
     },
   });
 
   const deleteAlertMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/alerts/${id}`, "DELETE");
+      return await apiRequest("DELETE", `/api/alerts/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
