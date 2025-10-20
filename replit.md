@@ -248,9 +248,30 @@ The app is designed for Replit's deployment system:
 3. Environment secrets managed securely
 4. Health check endpoint at `/api/health`
 
-## Recent Changes (Oct 19, 2025)
+## Recent Changes
 
-### Complete UI Rebuild
+### Oct 20, 2025 - Cryptocurrency Logos & Enhanced Alert Modal
+- ✅ **Cryptocurrency Logos** - All 200 coins now display circular logos from CoinMarketCap CDN
+  - Added `logoUrl` field to CoinPrice schema
+  - Updated CoinMarketCap service to fetch logo URLs from API
+  - Logos display as 32-40px circular images with rounded-full styling
+  - Integrated on All Cryptos page with coin name and symbol
+- ✅ **Custom Alert Modal** - Industry-standard alert creation UI following fintech best practices
+  - Full-screen Sheet modal with comprehensive options
+  - Coin selector with real-time search (filters through 200+ coins)
+  - Dual alert modes: Target Price or Percentage Change
+  - Direction toggles: Above (green) or Below (red) with visual feedback
+  - Alert sound selector with 5 preset options (Chime, Bell, Ding, Alert, Whistle)
+  - One-time alert toggle (auto-disable after first trigger)
+  - Multi-channel notifications: Push (enabled), Email (coming soon)
+  - Visual percentage change calculator from current price
+  - Success/error toast notifications
+- ✅ **Bug Fixes**
+  - Fixed apiRequest parameter order (method, url, data)
+  - Added comprehensive error handling and logging
+  - Improved mutation success callbacks with cache invalidation
+
+### Oct 19, 2025 - Complete UI Rebuild
 - ✅ **All Cryptos page** - Displays top 200 cryptocurrencies with inline sparklines, market stats header, numbered ranking, and red/green percentage badges
 - ✅ **Alerts page** - Recommended alert toggles (Trending News, Breaking News, Important Updates, Price Spikes, Volume Spikes, Trading Spikes) with descriptions and icons
 - ✅ **Settings page** - Grouped sections (Premium: Premium Features, Referral Program, Manage Subscription, Customer Support; General: Interface, Apple Watch, Sync/Backup, App Theme, Siri Shortcuts, Security, Exchange Import, Address Import)
@@ -260,15 +281,17 @@ The app is designed for Replit's deployment system:
 - ✅ **Design system** - Ultra-dark theme (hsl(0 0% 4%)) with premium gold accents (hsl(38 92% 50%))
 
 ### Backend Updates
-- ✅ CoinMarketCap service enhanced to fetch top 200 coins with market stats and sparklines
+- ✅ CoinMarketCap service enhanced to fetch top 200 coins with market stats, sparklines, and logo URLs
 - ✅ Database schema expanded with portfolios, user settings, and new alert types
 - ✅ API endpoint added for top coins (/api/top-coins)
-- ✅ Alert types support: trending_news, breaking_news, price_spike, volume_spike, trading_spike
+- ✅ Alert types support: price, pct_move, trending_news, breaking_news, price_spike, volume_spike, trading_spike
 
 ### Testing
 - ✅ E2E testing completed successfully on mobile viewport
 - ✅ All pages verified: navigation, layout, data display, interactions
 - ✅ Recommended alert toggles functional
+- ✅ Custom alert creation flow tested (price and percentage modes)
+- ✅ Cryptocurrency logos verified across all 200 coins
 
 ## Known Issues
 
