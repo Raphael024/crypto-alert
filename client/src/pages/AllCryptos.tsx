@@ -97,7 +97,10 @@ export default function AllCryptos() {
           <div className="space-y-3">
             {Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 py-3 animate-pulse">
-                <div className="w-12 h-4 bg-muted rounded" />
+                <div className="w-14 flex-shrink-0">
+                  <div className="h-3 w-8 bg-muted rounded mb-1 ml-auto" />
+                  <div className="h-2 w-10 bg-muted rounded ml-auto" />
+                </div>
                 <div className="w-8 h-8 bg-muted rounded-full" />
                 <div className="flex-1">
                   <div className="h-4 w-20 bg-muted rounded mb-1" />
@@ -118,10 +121,11 @@ export default function AllCryptos() {
                 onClick={() => window.location.href = `/coin/${coin.symbol}`}
                 data-testid={`coin-row-${coin.symbol}`}
               >
-                {/* Market Cap */}
-                <span className="text-xs text-muted-foreground w-12 text-right font-mono">
-                  {formatLargeNumber(coin.marketCap || 0)}
-                </span>
+                {/* Rank & Market Cap */}
+                <div className="text-xs text-muted-foreground w-14 text-right font-mono flex-shrink-0">
+                  <div className="text-primary font-bold">#{index + 1}</div>
+                  <div className="text-[10px] leading-tight">{formatLargeNumber(coin.marketCap || 0)}</div>
+                </div>
 
                 {/* Coin Logo */}
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
