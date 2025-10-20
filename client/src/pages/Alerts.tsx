@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
+import { CustomAlertModal } from "@/components/CustomAlertModal";
 import type { Alert } from "@shared/schema";
 
 interface RecommendedAlert {
@@ -68,6 +69,8 @@ const recommendedAlerts: RecommendedAlert[] = [
 ];
 
 export default function Alerts() {
+  const [customAlertModalOpen, setCustomAlertModalOpen] = useState(false);
+
   const { data: alerts = [] } = useQuery<Alert[]>({
     queryKey: ["/api/alerts"],
   });
@@ -87,6 +90,18 @@ export default function Alerts() {
         symbol: "ALL", // For recommended alerts, apply to all coins
         type: alertType,
         params: {},
+        active: true,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
+    },
+  });
+
+  const createCustomAlertMutation = useMutation({
+    mutationFn: async (alert: any) => {
+      return await apiRequest("/api/alerts", "POST", {
+        ...alert,
         active: true,
       });
     },
@@ -137,6 +152,7 @@ export default function Alerts() {
             size="icon" 
             variant="ghost" 
             className="text-primary"
+            onClick={() => setCustomAlertModalOpen(true)}
             data-testid="button-new-custom-alert"
           >
             <Plus className="h-6 w-6" />
@@ -195,7 +211,12 @@ export default function Alerts() {
               <p className="text-sm text-muted-foreground mb-4 max-w-sm">
                 Create custom price alerts for specific coins
               </p>
-              <Button size="sm" className="gap-2" data-testid="button-create-custom-alert">
+              <Button 
+                size="sm" 
+                className="gap-2" 
+                onClick={() => setCustomAlertModalOpen(true)}
+                data-testid="button-create-custom-alert"
+              >
                 <Plus className="h-4 w-4" />
                 Create Custom Alert
               </Button>
@@ -244,6 +265,13 @@ export default function Alerts() {
           )}
         </div>
       </div>
+
+      {/* Custom Alert Modal */}
+      <CustomAlertModal
+        open={customAlertModalOpen}
+        onOpenChange={setCustomAlertModalOpen}
+        onSubmit={(alert) => createCustomAlertMutation.mutate(alert)}
+      />
     </div>
   );
 }
