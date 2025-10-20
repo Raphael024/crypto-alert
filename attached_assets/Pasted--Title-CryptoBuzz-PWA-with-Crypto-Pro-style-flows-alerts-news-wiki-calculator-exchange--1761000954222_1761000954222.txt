@@ -1,0 +1,171 @@
+**Title:** CryptoBuzz – PWA with Crypto Pro–style flows (alerts, news, wiki, calculator, exchange & sound pickers)
+
+**Goal:** Build a Replit-friendly PWA (Vite React + Node/Express + Socket.IO) that replicates the UX shown in the screenshots:
+
+1. **Coin Detail** with chart + stats + tabs (News | Alerts | Wiki | Calculator).
+2. **News filter sheet** (“All Cryptos / Saved / Favorites / Portfolio” + search) and per-coin news list with source labels.
+3. **Add Alert** sheet (coin pill, condition builder, exchange/refresh, sound picker, repeat toggle, note).
+4. **Exchange selector** sheet (Global Average + individual exchanges w/ quote currencies).
+5. **Sound picker** sheet (list of tones).
+6. **Calculator** modal (convert coin ↔ fiat/crypto).
+7. **Bottom tabs:** Portfolios | Cryptos | News | Alerts | Settings.
+
+**Constraints:** Replit (no Docker, no native). Use **web push** for alerts (VAPID) and **.ics calendar export** for “critical” fallback. Use **free data sources**: live ticks via **Binance WS**; metadata/REST fallback via **CoinPaprika or CoinCap**; news via **CryptoPanic**.
+
+---
+
+### Monorepo
+
+```
+cryptobuzz/
+  apps/
+    server/
+      src/
+        index.ts
+        env.ts
+        routes/{alerts.ts,news.ts,calendar.ts,health.ts,exchanges.ts}
+        alerts/engine.ts
+        prices/{binance.ts,coincap.ts,coinpaprika.ts,streamHub.ts}
+        news/cryptopanic.ts
+        lib/{push.ts,ics.ts,symbols.ts}
+      prisma/schema.prisma
+      package.json
+      tsconfig.json
+    web/
+      public/manifest.webmanifest
+      src/
+        main.tsx
+        app.tsx
+        api.ts
+        push.ts
+        sw.ts
+        routes.tsx
+        pages/{Cryptos.tsx,Coin.tsx,News.tsx,Alerts.tsx,Settings.tsx,Portfolios.tsx,Wiki.tsx}
+        components/   # bottom sheets & shared UI
+          NewsFilterSheet.tsx
+          AddAlertSheet.tsx
+          ExchangePickerSheet.tsx
+          SoundPickerSheet.tsx
+          CalculatorModal.tsx
+          PriceChart.tsx
+          StatRow.tsx
+          AlarmSheet.tsx
+      index.html
+      package.json
+      tsconfig.json
+  packages/shared/
+    src/{types.ts,schemas.ts,ui.ts}
+    package.json
+    tsconfig.json
+  infra/env/.env.example
+  .github/workflows/ci.yml
+  package.json
+  README.md
+```
+
+### Tech
+
+* **Server:** Node 20, Express, Socket.IO, Prisma (Postgres), web-push (VAPID), Axios.
+* **Web:** Vite + React + TS, Zustand (state), React Query, lightweight bottom-sheet component, simple chart (e.g., apexcharts or lightweight-charts).
+* **Data:** Binance public WS for `{symbol}@aggTrade`; REST fallback via CoinPaprika **or** CoinCap; CryptoPanic news.
+* **Notifications:** Web Push (`requireInteraction`, `vibrate`), SW actions (**Stop**, **Snooze**). “Critical” option offers **.ics** download via `/calendar/event`.
+
+### Environment (.env.example)
+
+```
+PORT=3000
+DATABASE_URL=postgresql://USER:PASS@HOST:5432/cryptobuzz
+COINCAP_BASE=https://api.coincap.io/v2
+COINPAPRIKA_BASE=https://api.coinpaprika.com/v1
+CRYPTOPANIC_TOKEN=your_token
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:you@example.com
+VITE_PUBLIC_WS_URL=http://localhost:3000
+```
+
+### DB (Prisma)
+
+* `User(id,email,pushEndpoint JSON,createdAt)`
+* `Watch(id,userId,symbol,geckoLikeId)`  *(id from CoinPaprika/CoinCap)*
+* `Alert(id,userId,symbol,type ENUM['price','pct_move','day_levels','vwap'],params JSON,active BOOL,snoozeUntil TIMESTAMP,createdAt)`
+* `AlertFire(id,alertId,symbol,price DECIMAL(18,8),firedAt)`
+
+### Server routes & logic
+
+* `GET /healthz` → `{ok:true}`
+* `POST /push/subscribe` save web push subscription.
+* `GET /exchanges` return list: **Global Average** (5m), **Coinbase**, **Kraken**, etc., with available quote currencies.
+* `GET /news?symbol=BTC` → CryptoPanic (filter by currency), dedupe by URL, return `{title,source,age,sentiment,url}`.
+* `GET /alerts` / `POST /alerts` / `PATCH /alerts/:id` / `DELETE /alerts/:id`
+* `GET /alerts/test-fire?symbol=BTC&price=...` simulate crossing → push notification payload contains `{alertId,symbol,price}`.
+* `POST /calendar/event` → return `.ics` (title, description, startUtcISO) for iOS Calendar fallback.
+* **Price stream:** `prices/streamHub.ts` merges Binance WS ticks + REST fallback; emits `io.emit('tick', {symbol, price, ts})`.
+* **Alert engine:** on each tick evaluate active alerts; single-fire on crossing; **repeat every N mins** until **Stop**; **Snooze** sets `snoozeUntil`.
+
+### Service Worker (`web/src/sw.ts`)
+
+* `push` → `showNotification(title,{ body, requireInteraction:true, vibrate:[200,100,200], actions:[{action:'stop'},{action:'snooze'}], data })`
+* `notificationclick` → focus client and `postMessage({type:'ALERT_ACTION',action,data})`
+
+### UI flows to mirror screenshots
+
+**Bottom Tabs:** `Portfolios | Cryptos | News | Alerts | Settings`
+
+**Cryptos → Coin Detail**
+
+* Header: coin + price + 24h change.
+* Stats row: Market Cap, Supply (Circulating/Max), Volume, Rank, High/Low (1D).
+* Chart range chips: `1H | 1D | 1W | 1M | 3M | 1Y | ALL`.
+* Buttons: `Volume | Price` toggle (affects chart overlay).
+* Action pills: `Wiki`, `Calculator`, `Portfolio selector`.
+
+**News (per coin)**
+
+* Top section: “**News for**” sheet trigger.
+* **NewsFilterSheet:** list = All Cryptos, Saved, Favorites, Portfolio; **Search** input at top.
+* List items: source name (CRYPTO-POTATO, COINDESK, etc.), title, age (“17 minutes ago”), small thumbnail if provided. Tap → open in webview tab.
+
+**Alerts**
+
+* `+` opens **AddAlertSheet** with:
+
+  * Pills: `[BTC] [price | % move | vwap | day high/low] [ <, > ] [ value input ] [ USD|EUR|… ]`
+  * “**Exchange / Refresh interval**” row → opens **ExchangePickerSheet**:
+
+    * Sections: Global Average (5m), Coinbase (1m), Kraken (1m), etc.; each shows quote currencies (USD, EUR, GBP, USDT…).
+  * “**Sound**” row → opens **SoundPickerSheet** (list of tones + “Default/None”).
+  * “**Repeat**” toggle (off/on).
+  * “Note…” textarea.
+  * **Save** persists and arms the alert.
+
+**Calculator**
+
+* Modal with two rows: `BTC` ↔ currency dropdown; keypad; live rate text “1 BTC = 110,692 USD”; arithmetic buttons `+ − × ÷`.
+* Dropdown supports fiat (USD, EUR, GBP) and crypto (ETH, USDT).
+
+**Wiki**
+
+* Static card: summary paragraph; fields: Established, Block Time, Hash; external links (website, Twitter, Facebook).
+
+**AlarmSheet (on fire)**
+
+* Shows Stop/Snooze actions, mini-chart, “Why is it moving?” with **Top 3 headlines** for the coin.
+
+### Acceptance tests
+
+* Create BTC alert “price > X” on **Global Average**; hit `/alerts/test-fire` → persistent notification with **Stop/Snooze**, focusing PWA on click.
+* **Repeat** resends every N minutes until **Stop**; **Snooze 10m** sets `snoozeUntil`.
+* **NewsFilterSheet** switches to `Portfolio` and list updates.
+* **ExchangePickerSheet** changes source (e.g., Coinbase USD) and alert uses that feed.
+* **SoundPickerSheet** selection is remembered and plays when the PWA is focused.
+* **Calculator** converts BTC↔USD and supports simple math.
+* **Wiki** shows the static info card for the coin.
+
+### Scripts
+
+* Root: `"dev": "concurrently -k -n SERVER,WEB \"pnpm --filter @cb/server dev\" \"pnpm --filter @cb/web dev\""`
+* Server: `"dev": "ts-node-dev --respawn --transpile-only src/index.ts", "prisma:push": "prisma db push"`
+* Web: `"dev": "vite"`
+
+**Deliverables:** Generate all folders/files above with stubs and minimal working routes/screens so the app runs on Replit (`pnpm install && pnpm --filter @cb/server prisma:push && pnpm dev`).
