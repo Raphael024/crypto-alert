@@ -19,6 +19,7 @@ function Router() {
     <div className="pb-16 md:pb-0">
       <Switch>
         <Route path="/" component={AllCryptos} />
+        <Route path="/cryptos" component={AllCryptos} />
         <Route path="/portfolios" component={Portfolios} />
         <Route path="/coin/:symbol" component={Coin} />
         <Route path="/alerts" component={Alerts} />
