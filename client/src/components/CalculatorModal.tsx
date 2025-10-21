@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { CoinPrice } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 
 interface CalculatorModalProps {
   open: boolean;
@@ -18,33 +19,76 @@ interface CalculatorModalProps {
   currentCoin?: CoinPrice;
 }
 
-const FIAT_CURRENCIES = [
-  { value: "USD", label: "USD", symbol: "$" },
-  { value: "EUR", label: "EUR", symbol: "€" },
-  { value: "GBP", label: "GBP", symbol: "£" },
-  { value: "JPY", label: "JPY", symbol: "¥" },
+const CONVERSION_CURRENCIES = [
+  { value: "USD", label: "USD - US Dollar", symbol: "$", type: "fiat" },
+  { value: "GBP", label: "GBP - British Pound", symbol: "£", type: "fiat" },
+  { value: "EUR", label: "EUR - Euro", symbol: "€", type: "fiat" },
+  { value: "RUB", label: "RUB - Russian Ruble", symbol: "₽", type: "fiat" },
+  { value: "AUD", label: "AUD - Australian Dollar", symbol: "A$", type: "fiat" },
+  { value: "CAD", label: "CAD - Canadian Dollar", symbol: "C$", type: "fiat" },
+  { value: "BTC", label: "BTC - Bitcoin", symbol: "₿", type: "crypto" },
+  { value: "ETH", label: "ETH - Ethereum", symbol: "Ξ", type: "crypto" },
 ];
 
+// Approximate fiat exchange rates (for demo - in production would use real rates)
+const FIAT_RATES: Record<string, number> = {
+  USD: 1,
+  GBP: 0.79,
+  EUR: 0.92,
+  RUB: 92.5,
+  AUD: 1.53,
+  CAD: 1.36,
+};
+
 export function CalculatorModal({ open, onClose, currentCoin }: CalculatorModalProps) {
-  const [fromCurrency, setFromCurrency] = useState(currentCoin?.symbol || "BTC");
   const [toCurrency, setToCurrency] = useState("USD");
   const [amount, setAmount] = useState("1");
   const [result, setResult] = useState("");
 
-  // Mock conversion rate (in real app, would use actual exchange rates)
-  const conversionRate = currentCoin?.price || 50000;
+  // Fetch crypto prices for conversion
+  const { data: prices } = useQuery<Record<string, CoinPrice>>({
+    queryKey: ['/api/prices'],
+    refetchInterval: 10000,
+  });
 
+  // Calculate conversion
   useEffect(() => {
-    if (amount) {
-      const numAmount = parseFloat(amount);
-      if (!isNaN(numAmount)) {
-        const converted = numAmount * conversionRate;
-        setResult(converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-      }
-    } else {
+    if (!amount || !currentCoin || !prices) {
       setResult("");
+      return;
     }
-  }, [amount, conversionRate]);
+
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount)) {
+      setResult("");
+      return;
+    }
+
+    let converted = 0;
+    const fromPrice = currentCoin.price; // Price in USD
+
+    // Find the target currency
+    const targetCurrency = CONVERSION_CURRENCIES.find(c => c.value === toCurrency);
+    
+    if (targetCurrency?.type === "fiat") {
+      // Crypto to Fiat conversion
+      const usdValue = numAmount * fromPrice;
+      const fiatRate = FIAT_RATES[toCurrency] || 1;
+      converted = usdValue * fiatRate;
+    } else {
+      // Crypto to Crypto conversion
+      const targetPrice = prices[toCurrency]?.price || 0;
+      if (targetPrice > 0) {
+        const usdValue = numAmount * fromPrice;
+        converted = usdValue / targetPrice;
+      }
+    }
+
+    setResult(converted.toLocaleString(undefined, { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 8 
+    }));
+  }, [amount, currentCoin, toCurrency, prices]);
 
   const handleNumberClick = (num: string) => {
     if (amount === "0") {
@@ -73,16 +117,10 @@ export function CalculatorModal({ open, onClose, currentCoin }: CalculatorModalP
     }
   };
 
-  const handleSwap = () => {
-    const temp = fromCurrency;
-    setFromCurrency(toCurrency);
-    setToCurrency(temp);
-    if (result) {
-      setAmount(result.replace(/,/g, ""));
-    }
-  };
-
   if (!open) return null;
+
+  const fromSymbol = currentCoin?.symbol || "BTC";
+  const fromName = currentCoin?.name || "Bitcoin";
 
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
@@ -103,31 +141,22 @@ export function CalculatorModal({ open, onClose, currentCoin }: CalculatorModalP
       <div className="p-4 space-y-4">
         <Card className="p-4">
           <div className="flex items-center justify-between gap-4">
+            {/* From (Locked to current coin) */}
             <div className="flex-1">
               <p className="text-xs text-muted-foreground mb-1">From</p>
-              <Select value={fromCurrency} onValueChange={setFromCurrency}>
-                <SelectTrigger className="w-full" data-testid="select-from-currency">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BTC">BTC</SelectItem>
-                  <SelectItem value="ETH">ETH</SelectItem>
-                  <SelectItem value="SOL">SOL</SelectItem>
-                  {currentCoin && currentCoin.symbol !== "BTC" && currentCoin.symbol !== "ETH" && currentCoin.symbol !== "SOL" && (
-                    <SelectItem value={currentCoin.symbol}>{currentCoin.symbol}</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <div 
+                className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-muted px-3 py-2 text-sm"
+                data-testid="text-from-currency"
+              >
+                <span className="font-semibold">{fromSymbol}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{fromName}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSwap}
-              className="mt-5"
-              data-testid="button-swap-currencies"
-            >
-              ⇄
-            </Button>
+
+            {/* Arrow */}
+            <div className="mt-5 text-2xl text-muted-foreground">→</div>
+
+            {/* To (User selectable) */}
             <div className="flex-1">
               <p className="text-xs text-muted-foreground mb-1">To</p>
               <Select value={toCurrency} onValueChange={setToCurrency}>
@@ -135,8 +164,12 @@ export function CalculatorModal({ open, onClose, currentCoin }: CalculatorModalP
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {FIAT_CURRENCIES.map((currency) => (
-                    <SelectItem key={currency.value} value={currency.value}>
+                  {CONVERSION_CURRENCIES.map((currency) => (
+                    <SelectItem 
+                      key={currency.value} 
+                      value={currency.value}
+                      disabled={currency.value === fromSymbol}
+                    >
                       {currency.label}
                     </SelectItem>
                   ))}
@@ -150,7 +183,7 @@ export function CalculatorModal({ open, onClose, currentCoin }: CalculatorModalP
         <Card className="p-6 bg-muted/50">
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">{fromCurrency}</p>
+              <p className="text-sm text-muted-foreground mb-1">{fromSymbol}</p>
               <p className="text-3xl font-bold font-mono" data-testid="text-from-amount">
                 {amount}
               </p>
