@@ -1,6 +1,6 @@
 {
-  "name": "Crypto Buzz - Price Alerts",
-  "short_name": "Crypto Buzz",
+  "name": "Crypto Alert - Price Alerts",
+  "short_name": "Crypto Alert",
   "description": "Real-time cryptocurrency price alerts with trusted news",
   "start_url": "/",
   "display": "standalone",

@@ -50,7 +50,7 @@ async function createAndPushRepo() {
     const { data: user } = await octokit.users.getAuthenticated();
     console.log(`Authenticated as: ${user.login}`);
     
-    const repoName = 'crypto-buzz';
+    const repoName = 'crypto-alert';
     
     // Check if repo exists
     let repoExists = false;
@@ -73,7 +73,7 @@ async function createAndPushRepo() {
     if (!repoExists) {
       const { data: repo } = await octokit.repos.createForAuthenticatedUser({
         name: repoName,
-        description: 'Premium cryptocurrency tracking PWA with real-time prices, alerts, and news',
+        description: 'Crypto Alert - Premium cryptocurrency tracking PWA with real-time prices, alerts, and news',
         private: false,
         auto_init: false,
       });

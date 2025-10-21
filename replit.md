@@ -1,10 +1,10 @@
-# Crypto Buzz - Real-Time Price Alerts PWA
+# Crypto Alert - Real-Time Price Alerts PWA
 
 A production-ready Progressive Web App for cryptocurrency price alerts with real-time streaming, trusted news, and iPhone-alarm-grade notifications.
 
 ## Overview
 
-Crypto Buzz is a dark-mode-first, mobile-optimized PWA that provides:
+Crypto Alert is a dark-mode-first, mobile-optimized PWA that provides:
 - **Real-time price streaming** via WebSocket for BTC, ETH, SOL, and other top coins
 - **Interactive price alerts** with drag-to-set target prices on charts
 - **Trusted crypto news** from CryptoPanic with sentiment analysis (positive/negative/neutral)

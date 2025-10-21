@@ -1,8 +1,8 @@
-# Crypto Buzz - Premium Cryptocurrency Tracking PWA
+# Crypto Alert - Premium Cryptocurrency Tracking PWA
 
 A production-ready Progressive Web App for cryptocurrency tracking with real-time price streaming, custom alerts, trusted news, and professional fintech UI inspired by industry-leading crypto applications.
 
-![Crypto Buzz](https://img.shields.io/badge/Status-Production%20Ready-success)
+![Crypto Alert](https://img.shields.io/badge/Status-Production%20Ready-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
 ![React](https://img.shields.io/badge/React-18-blue)
@@ -51,7 +51,7 @@ A production-ready Progressive Web App for cryptocurrency tracking with real-tim
 ## 📁 Project Structure
 
 ```
-crypto-buzz/
+crypto-alert/
 ├── client/                 # Frontend application
 │   ├── src/
 │   │   ├── pages/          # Page components
@@ -107,7 +107,7 @@ crypto-buzz/
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd crypto-buzz
+   cd crypto-alert
    ```
 
 2. **Install dependencies**
@@ -368,4 +368,4 @@ For issues and questions:
 
 ---
 
-**Built with ❤️ for the crypto community**
+**Crypto Alert** - Built with ❤️ for the crypto community
