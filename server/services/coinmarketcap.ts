@@ -59,7 +59,7 @@ export class CoinMarketCapService {
       const result: Record<string, CoinPrice> = {};
 
       targetSymbols.forEach(symbol => {
-        const quote: CMCQuote = data.data[symbol];
+        const quote: any = data.data[symbol];
         if (quote) {
           const coinPrice: CoinPrice = {
             symbol: quote.symbol,
@@ -70,7 +70,12 @@ export class CoinMarketCapService {
             marketCap: quote.quote.USD.market_cap,
             high24h: quote.quote.USD.price * (1 + Math.abs(quote.quote.USD.percent_change_24h) / 100),
             low24h: quote.quote.USD.price * (1 - Math.abs(quote.quote.USD.percent_change_24h) / 100),
+            circulatingSupply: quote.circulating_supply,
+            maxSupply: quote.max_supply,
+            rank: quote.cmc_rank,
             sparkline: this.generateSparkline(quote.quote.USD.price, quote.quote.USD.percent_change_24h),
+            logoUrl: `https://s2.coinmarketcap.com/static/img/coins/64x64/${quote.id}.png`,
+            cmcId: quote.id,
           };
           result[symbol] = coinPrice;
           this.priceCache.set(symbol, coinPrice);

@@ -198,7 +198,9 @@ export default function Coin() {
         <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-border/50">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Rank</span>
-            <span className="text-2xl font-bold">{price?.rank || 1}</span>
+            <span className="text-2xl font-bold" data-testid="text-coin-rank">
+              #{price?.rank || '—'}
+            </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Portfolio ›</span>
