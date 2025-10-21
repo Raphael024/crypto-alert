@@ -1,0 +1,288 @@
+Got you. Here’s a **single copy-paste prompt** for Replit that (1) organizes the project to **industry standard**, (2) generates all missing scaffolding (README, `.env.example`, CI, gitignore, issue templates), and (3) **pushes to GitHub** so you can hand it to Codex.
+
+---
+
+## 🔧 Paste this into Replit “Generate” (or your AI agent on Replit)
+
+**Title:** Package CryptoBuzz PWA for GitHub + Codex handoff (production layout, README, CI)
+
+**Objective:**
+Package the current CryptoBuzz app into a clean monorepo with all files, documentation, and CI needed for Codex to continue the build. Then initialize Git and push to a new GitHub repo.
+
+**Inputs (fill these):**
+
+* `GITHUB_REPO` = `Raphael024/cryptobuzz`  *(change if needed)*
+* `GIT_USER_NAME` = `Raphael Ameh`
+* `GIT_USER_EMAIL` = `you@example.com`
+
+**Key decisions:**
+
+* Frontend: **PWA** (Vite + React + TS) with service worker push.
+* Backend: **Node/Express + Socket.IO + Prisma**.
+* Free data sources for testing: **Binance WebSocket** (live ticks), **CoinPaprika/CoinCap REST** (fallback + metadata), **CryptoPanic** (news).
+* Notifications: Web Push (VAPID) + optional **.ics Calendar** fallback for iOS system alarms.
+* No secrets committed. Provide `.env.example`.
+
+---
+
+### 1) Create/normalize repo structure
+
+```
+cryptobuzz/
+  .github/
+    workflows/ci.yml
+    ISSUE_TEMPLATE/feature.md
+    ISSUE_TEMPLATE/bug.md
+    PULL_REQUEST_TEMPLATE.md
+  .gitignore
+  .editorconfig
+  LICENSE
+  README.md
+  package.json
+  apps/
+    server/
+      package.json
+      tsconfig.json
+      prisma/schema.prisma
+      src/
+        index.ts
+        env.ts
+        routes/
+          alerts.ts
+          news.ts
+          calendar.ts
+          exchanges.ts
+          health.ts
+        alerts/engine.ts
+        prices/
+          binance.ts
+          coincap.ts
+          coinpaprika.ts
+          streamHub.ts
+        news/cryptopanic.ts
+        lib/
+          push.ts
+          ics.ts
+          symbols.ts
+    web/
+      package.json
+      tsconfig.json
+      index.html
+      public/manifest.webmanifest
+      src/
+        main.tsx
+        app.tsx
+        routes.tsx
+        api.ts
+        push.ts
+        sw.ts
+        pages/
+          Cryptos.tsx
+          Coin.tsx
+          News.tsx
+          Alerts.tsx
+          Settings.tsx
+          Portfolios.tsx
+          Wiki.tsx
+        components/
+          NewsFilterSheet.tsx
+          AddAlertSheet.tsx
+          ExchangePickerSheet.tsx
+          SoundPickerSheet.tsx
+          CalculatorModal.tsx
+          PriceChart.tsx
+          StatRow.tsx
+          AlarmSheet.tsx
+  packages/
+    shared/
+      package.json
+      tsconfig.json
+      src/types.ts
+      src/schemas.ts
+  infra/
+    env/.env.example
+```
+
+**Root `package.json` (workspaces + scripts):**
+
+* Workspaces: `["apps/*","packages/*"]`
+* Scripts:
+
+  * `"dev": "concurrently -k -n SERVER,WEB \"pnpm --filter @cb/server dev\" \"pnpm --filter @cb/web dev\""`
+  * `"typecheck": "pnpm -r run typecheck"`
+  * `"lint": "echo 'add lints later'"`
+  * `"build": "pnpm -r run build"`
+
+**Server `package.json` scripts:**
+`"dev": "ts-node-dev --respawn --transpile-only src/index.ts"`, `"prisma:push": "prisma db push"`
+
+**Web `package.json` scripts:**
+`"dev": "vite"`, `"build": "vite build"`, `"typecheck": "tsc --noEmit"`
+
+**`.gitignore` essentials:**
+`node_modules/`, `.env`, `.env.*`, `dist/`, `.DS_Store`, `.pnpm-store/`
+
+**`.editorconfig` basics:** 2-space indent, utf-8, lf.
+
+**LICENSE:** MIT.
+
+---
+
+### 2) Generate minimal working code (stubs)
+
+**Server env and entry (`apps/server/src/index.ts`):**
+
+* Load dotenv, create Express app + HTTP server + Socket.IO.
+* Mount routes: `/alerts`, `/news`, `/calendar`, `/exchanges`, `/healthz`.
+* Export `io` for stream hub.
+
+**Health route (`/healthz`)**: returns `{ ok: true }`.
+
+**Alerts:**
+
+* CRUD endpoints.
+* `GET /alerts/test-fire?symbol=BTC&price=68000` → emits push payload `{alertId,symbol,price}` to test alarm flow.
+
+**Stream hub:**
+
+* `binance.ts`: subscribe to `<symbol>@aggTrade`.
+* `coincap.ts`/`coinpaprika.ts`: basic REST GET for price/metadata fallback.
+* `streamHub.ts`: merge streams, `io.emit('tick',{symbol,price,ts})`.
+
+**Alert engine:**
+
+* On each tick, evaluate **price cross** alerts; ensure **single-fire**; save `AlertFire`.
+* **Repeat every N mins** until STOP; **Snooze 10m** sets `snoozeUntil`.
+
+**News:**
+
+* `GET /news?symbol=BTC` → calls CryptoPanic with currency filter; dedupe by URL.
+
+**Calendar fallback:**
+
+* `POST /calendar/event` → returns `.ics` from `lib/ics.ts`.
+
+**Web service worker (`web/src/sw.ts`):**
+
+* Handle `push` → `showNotification` with `requireInteraction: true`, vibrate, actions `stop`/`snooze`.
+* On `notificationclick` focus client and `postMessage({ type:'ALERT_ACTION', action, payload })`.
+
+**Web UI:**
+
+* Bottom tabs: **Portfolios | Cryptos | News | Alerts | Settings**.
+* Coin page: chart + stats + buttons (Wiki, Calculator) + range chips.
+* Sheets: **NewsFilter**, **AddAlert**, **ExchangePicker**, **SoundPicker**; **AlarmSheet** on fire.
+
+---
+
+### 3) Provide environment template
+
+`infra/env/.env.example`
+
+```
+# Server
+PORT=3000
+DATABASE_URL=postgresql://USER:PASS@HOST:5432/cryptobuzz
+# Free testing sources
+COINCAP_BASE=https://api.coincap.io/v2
+COINPAPRIKA_BASE=https://api.coinpaprika.com/v1
+CRYPTOPANIC_TOKEN=your_token_here
+# Web Push (generate via: npx web-push generate-vapid-keys)
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:you@example.com
+
+# Web
+VITE_PUBLIC_WS_URL=http://localhost:3000
+```
+
+---
+
+### 4) Create CI and templates
+
+`.github/workflows/ci.yml`
+
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'pnpm' }
+      - run: pnpm install
+      - run: pnpm typecheck
+```
+
+Issue/PR templates: simple Feature/Bug and PR checklist.
+
+---
+
+### 5) Write a **production-ready README.md**
+
+Include these sections (generate real content, not placeholders):
+
+1. **Overview** – What CryptoBuzz is (PWA with alarm-style crypto alerts + trusted news).
+2. **Screens & flows** – Briefly describe: Coin Detail, News filter, Add Alert, Exchange selector, Sound picker, Calculator, Wiki, AlarmSheet.
+3. **Architecture** – Monorepo, packages, data sources (Binance WS, CoinPaprika/CoinCap, CryptoPanic), alert engine, service worker.
+4. **Quick Start**
+
+   ```
+   pnpm install
+   pnpm --filter @cb/server prisma:push
+   cp infra/env/.env.example .env        # edit values
+   pnpm dev
+   ```
+
+   Open web → Settings → Enable Push.
+   **Test fast:** `GET /alerts/test-fire?symbol=BTC&price=68000`.
+5. **Environment variables** – Explain each var; never commit secrets.
+6. **Free data sources** – How we use Binance WS, CoinPaprika/CoinCap, CryptoPanic; rate-limit notes.
+7. **Limitations (iOS)** – Browser push vs true alarm; **.ics** fallback.
+8. **Roadmap for Codex** – Phases with checkboxes:
+
+   * Reliability (single-fire, repeat, snooze persistence)
+   * More alerts (% move, day high/low, VWAP, RSI14)
+   * “Why is it moving?” API + UI
+   * News dedupe + source badges
+   * Swagger `/docs`, unit/integration/E2E tests
+   * Capacitor/React Native wrapper & native alarm channels
+9. **Contributing & CI** – PR flow, CI runs `typecheck`.
+10. **License** – MIT.
+
+---
+
+### 6) Initialize git and push to GitHub
+
+1. Set user:
+   `git config --global user.name "$GIT_USER_NAME"`
+   `git config --global user.email "$GIT_USER_EMAIL"`
+2. Init & first commit:
+   `git init && git add . && git commit -m "chore: package CryptoBuzz for Codex"`
+3. Create main branch:
+   `git branch -M main`
+4. Add remote & push:
+   `git remote add origin https://github.com/${GITHUB_REPO}.git`
+   `git push -u origin main`
+
+**Output back to me:**
+
+* GitHub repo URL
+* Confirmed run instructions
+* Any TODOs you couldn’t complete
+
+**Acceptance criteria (must pass before push):**
+
+* `pnpm install` works at root.
+* `pnpm --filter @cb/server prisma:push` succeeds.
+* `pnpm dev` serves web + server; `/healthz` returns `{ok:true}`.
+* `/alerts/test-fire` triggers a web push (mock subscription OK).
+* README shows **Quick Start** and **Handoff to Codex** checklist.
+
+---
+
+Use this brief to package everything cleanly. After it’s on GitHub, you can point Codex to the repo and paste the “Finishing Brief” we prepared earlier.

@@ -1,0 +1,104 @@
+Replit prompt to push the current app “as-is”
+
+Copy-paste this to Replit:
+
+Title: Push current Crypto Alert app to GitHub + add Codex handoff notes
+Do:
+
+Verify the app builds and runs locally (same commands it uses now).
+
+Ensure we have README.md, .gitignore, and .env.example (create if missing; do not commit real secrets).
+
+Append a short “Handoff to Codex” section to README (use the text below).
+
+Initialize git (if needed), set user, add remote, and push to https://github.com/Raphael024/crypto-alert on main.
+
+Print the repo URL and last commit hash.
+
+Git (use these values):
+
+git config user.name "Raphael Ameh"
+git config user.email "you@example.com"
+git init
+git add .
+git commit -m "chore: initial push of working Crypto Alert app"
+git branch -M main
+git remote remove origin 2>/dev/null || true
+git remote add origin https://github.com/Raphael024/crypto-alert.git
+git push -u origin main
+
+
+Create/verify .env.example (use your app’s variables):
+
+PORT=3000
+DATABASE_URL=postgresql://USER:PASS@HOST:5432/cryptoalert
+CRYPTOPANIC_TOKEN=your_token_here
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:you@example.com
+# If you use free data sources during testing:
+COINCAP_BASE=https://api.coincap.io/v2
+COINPAPRIKA_BASE=https://api.coinpaprika.com/v1
+
+
+Append this to the end of README.md (create if missing):
+
+## Handoff to Codex
+**What’s here now**
+- Working Crypto Alert app (web UI + server) with price alerts and news.
+- Free data sources for testing (e.g., Binance WS + CoinCap/CoinPaprika REST) and CryptoPanic for news.
+- `.env.example` with all required variables (no real secrets committed).
+
+**How to run locally**
+1) `pnpm install` (or `npm i`)  
+2) Copy `.env.example` to `.env` and fill values  
+3) Start: `pnpm dev` (or the existing start command)  
+4) Health check endpoint: `/healthz` (if present)  
+5) Test alerts quickly (optional): `/alerts/test-fire?symbol=BTC&price=...`
+
+**Backlog for Codex (please create PRs):**
+- Reliability: single-fire on price cross, repeat every N minutes, Snooze 10m (persisted).  
+- More alerts: % move (1/5/15m), day high/low, VWAP, RSI(14).  
+- “Why is it moving?”: endpoint + UI card (top 3 headlines, 15m % change, volume blip).  
+- News dedupe + source credibility badges.  
+- Docs/tests: Swagger `/docs`, unit + integration tests (alert engine), E2E push flow.  
+- Optional: Capacitor/React Native wrapper plan for iOS/Android alarm-grade behavior later.
+
+
+Done criteria
+
+Repo pushed to main.
+
+README has the “Handoff to Codex” section.
+
+.env.example exists and matches the current code.
+
+Output repo URL + last commit hash.
+
+2) Why this is the right call (plain speak)
+
+You already have a working app. Shipping it to GitHub now keeps momentum.
+
+Codex works best when it can run the app immediately and then iterate via PRs.
+
+If we restructure first, we risk breaking a working build and losing time. We can always ask Codex to do the monorepo/Prisma/pnpm migration later as a separate PR.
+
+3) After the push (2-minute Codex prep)
+
+Open these four GitHub issues so Codex knows where to start:
+
+Alert Reliability Pass
+
+Single-fire on cross; repeat every N minutes; Snooze 10m persists; SW actions Stop/Snooze.
+
+New Alert Types
+
+% move (1/5/15m), day high/low, VWAP cross, RSI(14).
+
+Why Is It Moving?
+
+API to combine top CryptoPanic headlines + 15m % change + volume spike; show card on alert.
+
+Docs & Tests
+
+Swagger /docs; unit (engine rules), integration (push path), E2E (test-fire → Stop/Snooze).
