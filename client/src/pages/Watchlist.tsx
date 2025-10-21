@@ -37,7 +37,7 @@ export default function Watchlist() {
         <div className="container max-w-7xl mx-auto px-4 py-4 space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold">Crypto Buzz</h1>
+              <h1 className="text-2xl font-bold">Crypto Alert</h1>
               <div className="flex items-center gap-2">
                 <p className="text-sm text-muted-foreground">Real-time Price Alerts</p>
                 <Badge variant={isConnected ? "default" : "secondary"} className="flex items-center gap-1">

@@ -205,7 +205,7 @@ export default function Settings() {
         {/* App Version */}
         <div className="text-center py-4">
           <p className="text-xs text-muted-foreground">
-            Crypto Buzz v1.0.0
+            Crypto Alert v1.0.0
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Data by CoinMarketCap • News by CryptoPanic

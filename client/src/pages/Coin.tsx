@@ -93,7 +93,7 @@ export default function Coin() {
               </Button>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold text-primary">Crypto Pro</h1>
+                  <h1 className="text-lg font-bold text-primary">Crypto Alert</h1>
                 </div>
               </div>
             </div>
