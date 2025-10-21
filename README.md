@@ -368,4 +368,80 @@ For issues and questions:
 
 ---
 
+## 🤖 Handoff to Codex
+
+**What's here now:**
+- Working Crypto Alert app (React PWA + Express backend) with real-time price streaming, custom alerts, and trusted news
+- Top 200 cryptocurrencies with logos, sparklines, and comprehensive market data
+- WebSocket-powered live price updates
+- CoinMarketCap integration for price data and metadata
+- CryptoPanic integration for curated news with sentiment analysis
+- PostgreSQL database with Drizzle ORM
+- `.env.example` with all required variables (no real secrets committed)
+
+**How to run locally:**
+1. Clone the repository: `git clone https://github.com/Raphael024/crypto-alert.git`
+2. Install dependencies: `npm install`
+3. Copy `.env.example` to `.env` and fill in your API keys
+4. Initialize database: `npm run db:push`
+5. Start development server: `npm run dev`
+6. Open browser at `http://localhost:5000`
+7. (Optional) Seed demo data: `curl -X POST http://localhost:5000/api/seed`
+
+**Quick test:**
+- Navigate to any coin detail page
+- Check that prices update in real-time
+- Create a custom alert with exchange and sound selection
+- Filter news by sentiment, source, or cryptocurrency
+
+**Backlog for Codex (please create PRs):**
+
+### Phase 1: Alert Reliability
+- [ ] **Single-fire on price cross**: Ensure alerts only trigger once when price crosses threshold
+- [ ] **Repeat every N minutes**: Add configurable repeat interval (5m, 15m, 30m, 1h)
+- [ ] **Snooze persistence**: Save snooze state to database (currently resets on refresh)
+- [ ] **Service Worker actions**: Implement Stop/Snooze buttons in browser notifications
+- [ ] **Alert history UI**: Better visualization of triggered alerts with timestamps
+
+### Phase 2: Advanced Alert Types
+- [ ] **Percentage move alerts**: Trigger on 1%, 5%, or 15% price change in specified timeframe (1m, 5m, 15m)
+- [ ] **Day high/low alerts**: Notify when price reaches 24h high or low
+- [ ] **VWAP crossing**: Alert when price crosses Volume Weighted Average Price
+- [ ] **RSI(14) alerts**: Trigger on overbought (>70) or oversold (<30) conditions
+- [ ] **Volume spike alerts**: Detect abnormal trading volume
+
+### Phase 3: "Why Is It Moving?" Feature
+- [ ] **API endpoint**: Combine CryptoPanic headlines + 15m price change + volume data
+- [ ] **UI card**: Display top 3 relevant news headlines with alert
+- [ ] **Correlation detection**: Match news timing with price movements
+- [ ] **Sentiment impact**: Show how sentiment relates to price action
+
+### Phase 4: News Enhancements
+- [ ] **Deduplicate news**: Remove duplicate stories from different sources
+- [ ] **Source credibility badges**: Visual indicators for trusted vs questionable sources
+- [ ] **Save articles**: Allow users to bookmark important news
+- [ ] **Advanced filters**: Filter by publication date, score threshold, specific sources
+
+### Phase 5: Documentation & Testing
+- [ ] **Swagger/OpenAPI docs**: Add `/docs` endpoint with interactive API documentation
+- [ ] **Unit tests**: Test alert engine rules and evaluation logic
+- [ ] **Integration tests**: Test WebSocket connections and API endpoints
+- [ ] **E2E tests**: Test full user flows (alert creation → trigger → notification → action)
+- [ ] **Performance monitoring**: Add logging for slow queries and API calls
+
+### Phase 6: Mobile-Native (Future)
+- [ ] **Research Capacitor/React Native**: Plan for iOS/Android native wrapper
+- [ ] **Native push notifications**: True alarm-style alerts on mobile devices
+- [ ] **Background processing**: Alert evaluation even when app is closed
+- [ ] **Calendar integration**: .ics file generation for system calendar alerts
+
+**Development notes:**
+- All API keys and secrets are in `.env` (never commit real credentials)
+- Database schema is in `shared/schema.ts` using Drizzle ORM
+- Real-time updates use WebSocket server in `server/services/websocket.ts`
+- Alert engine runs in `server/services/alert-engine.ts`
+- Frontend uses TanStack Query v5 for data fetching and caching
+
+---
+
 **Crypto Alert** - Built with ❤️ for the crypto community
