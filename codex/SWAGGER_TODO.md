@@ -1,0 +1,2 @@
+- Add swagger-ui-express + OpenAPI 3 at /docs.
+- Document prices, coins, top-coins, alerts CRUD + history, news, why-moving, devices.
