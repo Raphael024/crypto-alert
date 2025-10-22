@@ -1,0 +1,41 @@
+Loading personal and system profiles took 2320ms.
+(base) PS C:\Users\User> git clone https://github.com/Raphael024/crypto-alert.git
+fatal: destination path 'crypto-alert' already exists and is not an empty directory.
+(base) PS C:\Users\User> cd crypto-alert
+(base) PS C:\Users\User\crypto-alert> npm install
+npm : The term 'npm' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ npm install
++ ~~~
+    + CategoryInfo          : ObjectNotFound: (npm:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+(base) PS C:\Users\User\crypto-alert> cp .env.example .env   # Edit with your API keys
+cp : Cannot find path 'C:\Users\User\crypto-alert\.env.example' because it does not exist.
+At line:1 char:1
++ cp .env.example .env   # Edit with your API keys
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\User\crypto-alert\.env.example:String) [Copy-Item], ItemNotFou
+   ndException
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.CopyItemCommand
+
+(base) PS C:\Users\User\crypto-alert> npm run db:push
+npm : The term 'npm' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ npm run db:push
++ ~~~
+    + CategoryInfo          : ObjectNotFound: (npm:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+(base) PS C:\Users\User\crypto-alert> npm run dev
+npm : The term 'npm' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ npm run dev
++ ~~~
+    + CategoryInfo          : ObjectNotFound: (npm:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+(base) PS C:\User
